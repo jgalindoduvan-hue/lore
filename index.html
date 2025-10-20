@@ -102,15 +102,17 @@
 
   #controls {
     display: flex;
-    gap: 20px;
+    gap: 10px;
     margin-top: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
-  .btn {
+  .btn, select {
     background: linear-gradient(90deg, #ff0099, #493240);
     border: none;
     color: white;
-    padding: 10px 20px;
+    padding: 10px 18px;
     border-radius: 8px;
     font-weight: bold;
     cursor: pointer;
@@ -118,7 +120,13 @@
     transition: transform 0.2s;
   }
 
-  .btn:hover {
+  select {
+    appearance: none;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .btn:hover, select:hover {
     transform: scale(1.1);
   }
 </style>
@@ -138,6 +146,17 @@
       <button class="btn" id="backward">⏪ 10s</button>
       <button class="btn" id="playpause">⏯ Pausar/Reanudar</button>
       <button class="btn" id="forward">⏩ 10s</button>
+      <button class="btn" id="volDown">🔉 Vol-</button>
+      <button class="btn" id="volUp">🔊 Vol+</button>
+      <select id="qualitySelect">
+        <option value="highres">Alta (auto)</option>
+        <option value="hd1080">1080p</option>
+        <option value="hd720">720p</option>
+        <option value="large">480p</option>
+        <option value="medium">360p</option>
+        <option value="small">240p</option>
+      </select>
+      <button class="btn" id="fullscreen">🖥 Pantalla completa</button>
     </div>
     <h2 id="currentTitle">Selecciona un video</h2>
   </div>
@@ -446,12 +465,13 @@ const DATA = [
     ]
   }
 ]; // end DATA
-
 const categoriesContainer = document.getElementById("categoriesContainer");
 const currentTitle = document.getElementById("currentTitle");
+const qualitySelect = document.getElementById("qualitySelect");
 let player;
+let currentVolume = 100;
 
-// Cargar la API de YouTube
+// Cargar API YouTube
 let tag = document.createElement('script');
 tag.src = "https://www.youtube.com/iframe_api";
 document.body.appendChild(tag);
@@ -476,8 +496,9 @@ DATA.forEach(cat => {
     item.addEventListener("click", () => {
       const videoId = new URL(video.url).searchParams.get("v");
       if (player) {
-        player.loadVideoById(videoId);
+        player.loadVideoById(videoId, 0, "highres");
         player.playVideo();
+        player.setPlaybackQuality("highres");
       }
       currentTitle.textContent = `${cat.title} — ${video.name}`;
     });
@@ -494,7 +515,7 @@ DATA.forEach(cat => {
   categoriesContainer.appendChild(catDiv);
 });
 
-// 🧠 Inicializar el reproductor con parámetros seguros
+// 🧠 Inicializar reproductor
 function onYouTubeIframeAPIReady() {
   player = new YT.Player('player', {
     height: '480',
@@ -512,43 +533,65 @@ function onYouTubeIframeAPIReady() {
       origin: window.location.origin
     },
     events: {
+      onReady: () => player.setVolume(currentVolume),
       onStateChange: (event) => {
         const iframe = player.getIframe();
-        if (event.data === YT.PlayerState.PAUSED) {
-          iframe.style.filter = "brightness(0.5)";
-        } else {
-          iframe.style.filter = "none";
-        }
+        iframe.style.filter = event.data === YT.PlayerState.PAUSED ? "brightness(0.5)" : "none";
       }
     }
   });
 }
 
-// 🎛 Controles personalizados
+// 🎛 Controles
 document.getElementById("playpause").addEventListener("click", () => {
   if (!player) return;
   const state = player.getPlayerState();
-  if (state === YT.PlayerState.PLAYING) player.pauseVideo();
-  else player.playVideo();
+  state === YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
 });
 
 document.getElementById("forward").addEventListener("click", () => {
   if (player) player.seekTo(player.getCurrentTime() + 10, true);
 });
-
 document.getElementById("backward").addEventListener("click", () => {
   if (player) player.seekTo(player.getCurrentTime() - 10, true);
 });
 
-// 💖 Fondo animado de corazones
+// 🔊 Volumen
+document.getElementById("volUp").addEventListener("click", () => {
+  if (player) {
+    currentVolume = Math.min(currentVolume + 10, 100);
+    player.setVolume(currentVolume);
+  }
+});
+document.getElementById("volDown").addEventListener("click", () => {
+  if (player) {
+    currentVolume = Math.max(currentVolume - 10, 0);
+    player.setVolume(currentVolume);
+  }
+});
+
+// ⚙️ Selector de calidad
+qualitySelect.addEventListener("change", () => {
+  if (player) {
+    const quality = qualitySelect.value;
+    player.setPlaybackQuality(quality);
+  }
+});
+
+// 🖥️ Pantalla completa
+document.getElementById("fullscreen").addEventListener("click", () => {
+  const iframe = player.getIframe();
+  if (iframe.requestFullscreen) iframe.requestFullscreen();
+  else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
+  else if (iframe.msRequestFullscreen) iframe.msRequestFullscreen();
+});
+
+// 💖 Fondo animado
 const canvas = document.getElementById("heartCanvas");
 const ctx = canvas.getContext("2d");
 let hearts = [];
 
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
+function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
 window.addEventListener("resize", resize);
 resize();
 
@@ -586,7 +629,4 @@ animate();
 </script>
 </body>
 </html>
-
-
-
 

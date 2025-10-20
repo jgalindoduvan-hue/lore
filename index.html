@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
@@ -100,7 +100,6 @@
     text-align: center;
   }
 
-  /* Controles personalizados */
   #controls {
     display: flex;
     gap: 20px;
@@ -145,9 +144,7 @@
 </main>
 
 <script>
-// ============================
-//   DATOS DE LOS VIDEOS
-// ============================
+// 📂 Lista de videos
 const DATA = [
   { title: "El Abismo", videos: [
       {name:"Parte 1", url:"https://www.youtube.com/watch?v=rLQooyD264Q&t=12s"},
@@ -449,21 +446,17 @@ const DATA = [
     ]
   }
 ]; // end DATA
+
 const categoriesContainer = document.getElementById("categoriesContainer");
 const currentTitle = document.getElementById("currentTitle");
-
 let player;
 
-// ============================
-//   CARGA DE API YOUTUBE
-// ============================
-const tag = document.createElement('script');
+// Cargar la API de YouTube
+let tag = document.createElement('script');
 tag.src = "https://www.youtube.com/iframe_api";
-document.head.appendChild(tag);
+document.body.appendChild(tag);
 
-// ============================
-//   MENÚ DE CATEGORÍAS
-// ============================
+// Crear lista de categorías
 DATA.forEach(cat => {
   const catDiv = document.createElement("div");
   catDiv.className = "category";
@@ -484,6 +477,7 @@ DATA.forEach(cat => {
       const videoId = new URL(video.url).searchParams.get("v");
       if (player) {
         player.loadVideoById(videoId);
+        player.playVideo();
       }
       currentTitle.textContent = `${cat.title} — ${video.name}`;
     });
@@ -500,40 +494,37 @@ DATA.forEach(cat => {
   categoriesContainer.appendChild(catDiv);
 });
 
-// ============================
-//   REPRODUCTOR YOUTUBE LIMPIO
-// ============================
+// 🧠 Inicializar el reproductor con parámetros seguros
 function onYouTubeIframeAPIReady() {
   player = new YT.Player('player', {
     height: '480',
     width: '854',
     videoId: '',
     playerVars: {
-      autoplay: 0,
-      controls: 0,
-      disablekb: 1,
-      rel: 0,
-      showinfo: 0,
       modestbranding: 1,
-      fs: 0,
+      rel: 0,
+      controls: 0,
+      showinfo: 0,
       iv_load_policy: 3,
-      enablejsapi: 1,
+      fs: 0,
+      disablekb: 1,
       playsinline: 1,
       origin: window.location.origin
     },
     events: {
-      onReady: (event) => {
-        // Bloquea los clics sobre el iframe para que no aparezcan los controles ni las sugerencias
-        const iframe = event.target.getIframe();
-        iframe.style.pointerEvents = "none";
+      onStateChange: (event) => {
+        const iframe = player.getIframe();
+        if (event.data === YT.PlayerState.PAUSED) {
+          iframe.style.filter = "brightness(0.5)";
+        } else {
+          iframe.style.filter = "none";
+        }
       }
     }
   });
 }
 
-// ============================
-//   CONTROLES PERSONALIZADOS
-// ============================
+// 🎛 Controles personalizados
 document.getElementById("playpause").addEventListener("click", () => {
   if (!player) return;
   const state = player.getPlayerState();
@@ -549,9 +540,7 @@ document.getElementById("backward").addEventListener("click", () => {
   if (player) player.seekTo(player.getCurrentTime() - 10, true);
 });
 
-// ============================
-//   EFECTO DE CORAZONES
-// ============================
+// 💖 Fondo animado de corazones
 const canvas = document.getElementById("heartCanvas");
 const ctx = canvas.getContext("2d");
 let hearts = [];
@@ -597,3 +586,4 @@ animate();
 </script>
 </body>
 </html>
+
